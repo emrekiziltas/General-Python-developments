@@ -60,7 +60,7 @@ with pd.ExcelWriter("Activity_Report_with_Grouped_Activities.xlsx", engine='xlsx
     })
     chart.set_title({'name': 'Total Count by Activity Group'})
     chart.set_x_axis({'name': 'Activity Group'})
-    chart.set_y_axis({'name': 'Total Count'})
+    chart.set_y_axis({'name': 'Total Countt'})
     worksheet.insert_chart('D2', chart)
 
     # Grafik 1: Konuma göre toplam sayılar
