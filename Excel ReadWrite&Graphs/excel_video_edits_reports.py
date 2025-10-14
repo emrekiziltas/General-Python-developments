@@ -103,4 +103,4 @@ with pd.ExcelWriter("Activity_Report_with_Grouped_Activities.xlsx", engine='xlsx
     chart3.set_y_axis({'name': 'Total Count'})
     worksheet3.insert_chart('D2', chart3)
 
-print("✅ Rapor başarıyla: Activity_Report_with_Grouped_Activities.xlsx")
+print("✅ Rapor başarıyla oluşturuldu: Activity_Report_with_Grouped_Activities.xlsx")
