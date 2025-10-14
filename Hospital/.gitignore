@@ -56,3 +56,11 @@ data/
 logs/
 tmp/
 temp/
+
+# Ignore only processed data
+Data/Processed/
+Data/Temp/
+
+# Keep raw data
+!Data/Raw/
+!Data/Raw/*.csv
