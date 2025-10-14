@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 
 for dirname, _, filenames in os.walk('/data/raw'):
     for filename in filenames:
-        print(os.path.join(dirname, filename))
+        os.path.join(dirname, filename)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 

@@ -51,12 +51,12 @@ def preprocess_data(df):
     X_preprocessed_df = pd.DataFrame(X_preprocessed, columns=feature_names)
 
     # Summary outputs
-    print("✅ Preprocessing complete.")
-    print("Preprocessed Feature Shape:", X_preprocessed.shape)
-    print("\nPreprocessed Features Summary:")
-    print(X_preprocessed_df.describe())
-    print("\nTarget (y) Summary:")
-    print(y.describe())
+    #print("✅ Preprocessing complete.")
+    #print("Preprocessed Feature Shape:", X_preprocessed.shape)
+    #print("\nPreprocessed Features Summary:")
+    #print(X_preprocessed_df.describe())
+    #print("\nTarget (y) Summary:")
+    #print(y.describe())
 
     # Stratify train/test split on y quartiles
     y_strata = pd.qcut(y, q=4, labels=False)
@@ -64,7 +64,7 @@ def preprocess_data(df):
         X_preprocessed, y, test_size=0.2, random_state=42, stratify=y_strata
     )
 
-    print("\nTrain Set Shape:", X_train.shape, "Test Set Shape:", X_test.shape)
-    print("Train y mean:", y_train.mean().round(2), "Test y mean:", y_test.mean().round(2))
+    #print("\nTrain Set Shape:", X_train.shape, "Test Set Shape:", X_test.shape)
+    #print("Train y mean:", y_train.mean().round(2), "Test y mean:", y_test.mean().round(2))
 
     return X_train, X_test, y_train, y_test, preprocessor
