@@ -2,6 +2,8 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
+from config import OUTPUT_DIR
+import os
 
 def preprocess_data(df):
     """

@@ -9,15 +9,11 @@ def main():
     df = add_length_of_stay(df)
     summary = service_satisfaction_summary(df)
 
-
     # Preprocess and split
     X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df)
 
-    #print("\nSample of preprocessed training data:")
-    #print(X_train[:5])
-    #print("Sample of target values:")
-    #print(y_train[:5])
+    # Plot and save visualizations
+    plot_patient_insights(df, filename="patient_insights.pdf")
 
-    plot_patient_insights(df)
 if __name__ == "__main__":
     main()
