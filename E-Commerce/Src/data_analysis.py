@@ -9,3 +9,10 @@ def add_length_of_stay(df):
     print("\nLength of Stay Statistics:")
     print(df['length_of_stay_days'].describe())
     return df
+
+def service_satisfaction_summary(df):
+    """Compute service-wise satisfaction statistics."""
+    summary = df.groupby('service')['satisfaction'].agg(['mean', 'std', 'count']).round(2)
+    print("\nService-wise Satisfaction Summary:")
+    print(summary)  # Use print instead of display() in scripts
+    return summary
