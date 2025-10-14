@@ -1,0 +1,58 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.db
+*.sqlite3
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+
+# Compiled / distribution files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================
+# PyCharm / JetBrains
+# =========================
+.idea/
+*.iml
+
+# =========================
+# System files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Data folders (optional)
+# =========================
+# You probably don’t want to push raw or private data.
+Data/Raw/
+Data/Processed/
+Data/Temp/
+data/
+*.csv
+*.xlsx
+*.xls
+
+# =========================
+# Logs / temp files
+# =========================
+*.log
+logs/
+tmp/
+temp/
