@@ -4,10 +4,13 @@ from data_analysis import add_length_of_stay, service_satisfaction_summary
 from data_processing import preprocess_data
 
 def main():
-    df = load_data()
-    inspect_data(df)
-    df = add_length_of_stay(df)
-    summary = service_satisfaction_summary(df)
+
+    data = load_data()
+    df = data["patients"]
+
+    inspect_data(data["patients"])
+    data["patients"] = add_length_of_stay(data["patients"])
+    summary = service_satisfaction_summary(data["patients"])
 
     # Preprocess and split
     X_train, X_test, y_train, y_test, preprocessor = preprocess_data(df)

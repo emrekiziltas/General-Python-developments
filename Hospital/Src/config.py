@@ -12,5 +12,6 @@ for dirname, _, filenames in os.walk('/data/raw'):
         os.path.join(dirname, filename)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
+
 OUTPUT_DIR  = os.path.join(base_dir, '..', 'Data', 'Output')
-CSV_PATH = os.path.join(base_dir, '..', 'Data', 'Raw', 'patients.csv')
+DATA_DIR = os.path.join(base_dir, '..', 'Data', 'Raw')
