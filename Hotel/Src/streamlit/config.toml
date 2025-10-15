@@ -1,0 +1,7 @@
+[theme]
+base="light"  # "dark" da seçebilirsin
+primaryColor="#2E7D32"
+backgroundColor="#F9FAFB"
+secondaryBackgroundColor="#E5E7EB"
+textColor="#111827"
+font="sans serif"
