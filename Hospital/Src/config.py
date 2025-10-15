@@ -4,12 +4,11 @@
 """
 import os
 import warnings
+from pathlib import Path
 
 warnings.filterwarnings('ignore')
 
-for dirname, _, filenames in os.walk('/data/raw'):
-    for filename in filenames:
-        os.path.join(dirname, filename)
+filenames = [f for f in Path('/data/raw').rglob('*') if f.is_file()]
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 

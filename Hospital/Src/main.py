@@ -1,4 +1,4 @@
-from data_loading import load_data, inspect_data
+from data_loading import load_data, inspect_data, visualize_missing
 from visualization import plot_patient_insights
 from data_analysis import add_length_of_stay, service_satisfaction_summary
 from data_processing import preprocess_data
@@ -6,6 +6,7 @@ from data_processing import preprocess_data
 def main():
 
     data = load_data()
+    visualize_missing(data)
     df = data["patients"]
 
     inspect_data(data["patients"])
