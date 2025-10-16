@@ -1,51 +1,66 @@
 import streamlit as st
-import pandas as pd
-
-# Alt sayfaları içe aktar
 import dashboard
 import reservations
 import reports
-
 from css import CUSTOM_CSS
 
-# Sayfa yapılandırması (ilk satırda)
-st.set_page_config(page_title="Sales Dashboard", layout="wide")
-
+# Page configuration
+st.set_page_config(page_title="Hotel Dashboard", layout="wide")
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-def load_tabs():
-    st.title("📊 Çok Sekmeli Rapor Arayüzü")
 
-    # Örnek veri
-    df = pd.DataFrame({
-        "Ay": ["Ocak", "Şubat", "Mart", "Nisan"],
-        "Satış": [150, 200, 180, 220],
-        "Maliyet": [100, 120, 90, 130]
-    })
+def load_tabs(data):
+    st.title("📊 Hotel Dashboard")
 
-    # Sidebar filtreleri
-    st.sidebar.title("🔧 Filtreler")
-    year = st.sidebar.selectbox("Yıl", [2023, 2024, 2025])
-    region = st.sidebar.multiselect("Bölge", ["Marmara", "Ege", "İç Anadolu"], default=["Marmara"])
+    # --- Sidebar Filters ---
+    st.sidebar.title("🔧 Filters")
 
-    # KPI metrikleri
+    # Multi-year selection
+    years = st.sidebar.multiselect(
+        "Select Year",
+        options=sorted(data["Year"].unique()),
+        default=sorted(data["Year"].unique())
+    )
+    # If user selects no year
+    if not years:
+        st.warning("⚠️ Please select at least one year.")
+        st.stop()  # Prevents further execution
+
+    meal_plan = st.sidebar.selectbox("Meal Plan", sorted(data["MealPlan"].unique()))
+
+    booking_channels = st.sidebar.multiselect(
+        "Booking Channel",
+        options=sorted(data["BookingChannel"].unique()),
+        default=sorted(data["BookingChannel"].unique())
+    )
+
+    # Apply filters
+    filtered_data = data[
+        (data["Year"].isin(years)) &
+        (data["MealPlan"] == meal_plan) &
+        (data["BookingChannel"].isin(booking_channels))
+    ].reset_index(drop=True)
+
+    # If filtered data is empty
+    if filtered_data.empty:
+        st.warning("⚠️ No records match these filters. Please try different filter selections.")
+        st.stop()
+
+    # --- KPI Metrics ---
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Toplam Satış", "₺ 1.2M", "+5%")
+        st.metric("Total Sales", f"₺ {filtered_data['Price'].sum():,.0f}")
     with col2:
-        st.metric("Toplam Maliyet", "₺ 870K", "-3%")
+        st.metric("Total Reservations", len(filtered_data))
     with col3:
-        st.metric("Net Kar", "₺ 330K", "+8%")
+        st.metric("Cancelled", len(filtered_data[filtered_data["Status"] == "Canceled"]))
 
-    # Sekmeler
-    tab1, tab2, tab3 = st.tabs(["📈 Satış Raporu", "💰 Maliyet Raporu", "💹 Kar Analizi"])
+    # --- Tabs ---
+    tab1, tab2, tab3 = st.tabs(["📈 Sales Report", "💰 Cost Report", "💹 Profit Analysis"])
 
     with tab1:
-        dashboard.app(df)
+        dashboard.app(filtered_data)
     with tab2:
-        reservations.app(df)
+        reservations.app(filtered_data)
     with tab3:
-        reports.app(df)
-
-if __name__ == "__main__":
-    load_tabs()
+        reports.app(filtered_data)
