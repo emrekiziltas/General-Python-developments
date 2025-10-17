@@ -11,6 +11,7 @@ def main():
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
     # Veri yükle
+
     data = load_data()
 
     # Veri incele
