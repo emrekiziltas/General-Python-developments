@@ -61,7 +61,7 @@ def format_date(date_dict):
 # zbMath API (updated to merge into summary_list by firstname + lastname)
 # ---------------------------------------------------------------
 def zbmath_id(firstname, lastname, orcid_id=None, size=5):
-    """Fetch zbMath author data and merge into summary_list by firstname+lastname."""
+    """Fetch zbMath author data and merge into summary_list by firstname+lastname.**"""
     BASE_URL = "https://api.zbmath.org/v1/author/_search"
     search_string = f"ln:{lastname} fn:{firstname}"
     params = {"search_string": search_string, "size": size}
