@@ -8,33 +8,40 @@ import requests
 import urllib.parse
 import os
 import json
+import traceback
 
-# --- Step 1: Read CSV ---
-df = pd.read_csv("list.csv")
-names = df.to_dict(orient="records")
+# ---------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------
+# File paths
+INPUT_CSV = "list.csv"
+OUTPUT_EXCEL = "orcid_full_data.xlsx"
+JSON_OUTPUT_DIR = "orcid_json"
 
-# --- Step 2: API URLs ---
-search_base = "https://pub.orcid.org/v3.0/search/?q="
-record_base = "https://pub.orcid.org/v3.0/"
+# API endpoints
+ORCID_SEARCH_BASE = "https://pub.orcid.org/v3.0/search/?q="
+ORCID_RECORD_BASE = "https://pub.orcid.org/v3.0/"
+ZBMATH_SEARCH_URL = "https://api.zbmath.org/v1/author/_search"
 
-os.makedirs("orcid_json", exist_ok=True)
+# Request settings
+MAX_RETRIES = 3
+REQUEST_TIMEOUT = 10
+ZBMATH_RESULTS_SIZE = 5
 
-# --- Step 3: Containers ---
-works_list = []
-employments_list = []
-educations_list = []
-fundings_list = []
-emails_list = []
-keywords_list = []
-researcher_urls_list = []
+# Headers
+JSON_HEADERS = {"Accept": "application/json"}
+
+# ---------------------------------------------------------------
+# Initialize
+# ---------------------------------------------------------------
+os.makedirs(JSON_OUTPUT_DIR, exist_ok=True)
 summary_list = []
-zbmath_list = []
-
 
 # ---------------------------------------------------------------
 # Utility functions
 # ---------------------------------------------------------------
-def safe_get(url, headers=None, params=None, max_retries=3, timeout=10):
+
+def safe_get(url, headers=None, params=None, max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT):
     """Safe GET request with retries and timeout."""
     for attempt in range(max_retries):
         try:
@@ -45,35 +52,23 @@ def safe_get(url, headers=None, params=None, max_retries=3, timeout=10):
             print(f"   ⚠️ Request failed ({attempt + 1}/{max_retries}) for {url}: {e}")
     return None
 
-
-def format_date(date_dict):
-    """Format ORCID-style date dict to YYYY-MM-DD string."""
-    if not date_dict:
-        return None
-    year = date_dict.get("year", {}).get("value", "")
-    month = date_dict.get("month", {}).get("value", "")
-    day = date_dict.get("day", {}).get("value", "")
-    parts = [str(p) for p in [year, month, day] if p]
-    return "-".join(parts) if parts else None
-
-
 # ---------------------------------------------------------------
-# zbMath API (updated to merge into summary_list by firstname + lastname)
+# zbMath API
 # ---------------------------------------------------------------
-def zbmath_id(firstname, lastname, orcid_id=None, size=5):
-    """Fetch zbMath author data and merge into summary_list by firstname+lastname.**"""
-    BASE_URL = "https://api.zbmath.org/v1/author/_search"
+def zbmath_id(firstname, lastname, orcid_id=None, size=ZBMATH_RESULTS_SIZE):
+    """Fetch zbMath author data and merge into summary_list by firstname+lastname."""
     search_string = f"ln:{lastname} fn:{firstname}"
     params = {"search_string": search_string, "size": size}
 
     print(f"   🔎 Searching zbMath for: {search_string}")
-    response = safe_get(BASE_URL, params=params)
+    response = safe_get(ZBMATH_SEARCH_URL, params=params)
     if not response:
         return []
 
     try:
         data = response.json()
         results_list = data.get("result", [])
+        print(results_list)
         if not results_list:
             print("   ⚠️ No zbMath results found")
             return []
@@ -93,11 +88,11 @@ def zbmath_id(firstname, lastname, orcid_id=None, size=5):
             }
 
             if matched_entry:
-                # Update the existing entry with zbMath info (add new keys)
+                # Update the existing entry with zbMath info
                 matched_entry.update(zb_info)
                 print(f"   ✓ Updated summary with zbMath author for {firstname} {lastname}: {zb_info['zbmath_name']}")
             else:
-                # No existing ORCID entry, create new summary row with zbMath info + names
+                # No existing ORCID entry, create new summary row with zbMath info
                 new_entry = {
                     "firstname": firstname,
                     "lastname": lastname,
@@ -113,7 +108,6 @@ def zbmath_id(firstname, lastname, orcid_id=None, size=5):
         print(f"   ⚠️ zbMath error for {firstname} {lastname}: {e}")
         return []
 
-
 # ---------------------------------------------------------------
 # ORCID API
 # ---------------------------------------------------------------
@@ -128,10 +122,10 @@ def orchid_finder(search_data, first, last):
     for res in search_data["result"]:
         try:
             orcid_id = res["orcid-identifier"]["path"]
-            record_url = record_base + orcid_id
+            record_url = ORCID_RECORD_BASE + orcid_id
             print(f"\n   🔍 Fetching ORCID record for {orcid_id}")
 
-            r_record = safe_get(record_url, headers={"Accept": "application/json"})
+            r_record = safe_get(record_url, headers=JSON_HEADERS)
             if not r_record:
                 print(f"   ⚠️ Failed to fetch ORCID record for {orcid_id}")
                 continue
@@ -149,7 +143,7 @@ def orchid_finder(search_data, first, last):
                 continue
 
             # Save for inspection
-            json_path = f"orcid_json/{orcid_id}.json"
+            json_path = os.path.join(JSON_OUTPUT_DIR, f"{orcid_id}.json")
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(record_data, f, indent=2, ensure_ascii=False)
 
@@ -183,50 +177,58 @@ def orchid_finder(search_data, first, last):
         except AttributeError as e:
             print(f"   ❌ AttributeError for ORCID {orcid_id}: {e}")
             print(f"   💡 Check: person, activities, or name might be None")
-            print(f"   📁 JSON saved at: orcid_json/{orcid_id}.json")
-            import traceback
+            print(f"   📁 JSON saved at: {json_path}")
             traceback.print_exc()
         except Exception as e:
             print(f"   ⚠️ General error for ORCID {orcid_id}: {e}")
-            import traceback
             traceback.print_exc()
 
     return None
 
-
 # ---------------------------------------------------------------
-# Main Loop
+# Main execution
 # ---------------------------------------------------------------
-for person in names:
-    first = str(person["firstname"]).strip()
-    last = str(person["lastname"]).strip()
-    query = f"given-names:{first} AND family-name:{last}"
-    search_url = search_base + urllib.parse.quote(query)
 
-    print(f"\n🔍 Searching for: {first} {last}")
+def main():
+    """Main execution function."""
+    # Read input CSV
+    print(f"📖 Reading input from: {INPUT_CSV}")
+    df = pd.read_csv(INPUT_CSV)
+    names = df.to_dict(orient="records")
+    print(f"   ✓ Found {len(names)} names to process\n")
 
-    r_search = safe_get(search_url, headers={"Accept": "application/json"})
-    if not r_search:
-        continue
+    # Process each person
+    for person in names:
+        first = str(person["firstname"]).strip()
+        last = str(person["lastname"]).strip()
+        query = f"given-names:{first} AND family-name:{last}"
+        search_url = ORCID_SEARCH_BASE + urllib.parse.quote(query)
 
-    try:
-        search_data = r_search.json()
-        orcid_id = orchid_finder(search_data, first, last)
-        zbmath_id(first, last, orcid_id=orcid_id)
-    except Exception as e:
-        print(f"   ⚠️ ORCID error for {first} {last}: {e}")
+        print(f"🔍 Searching for: {first} {last}")
 
-# ---------------------------------------------------------------
-# Save resultsa
-# ---------------------------------------------------------------
-print("\n📊 Saving data to Excel...")
+        r_search = safe_get(search_url, headers=JSON_HEADERS)
+        if not r_search:
+            continue
 
-with pd.ExcelWriter("orcid_full_data.xlsx", engine="openpyxl") as writer:
-    if summary_list:
-        pd.DataFrame(summary_list).to_excel(writer, sheet_name="Summary", index=False)
+        try:
+            search_data = r_search.json()
+            orcid_id = orchid_finder(search_data, first, last)
+            zbmath_id(first, last, orcid_id=orcid_id)
+        except Exception as e:
+            print(f"   ⚠️ ORCID error for {first} {last}: {e}")
 
-print("✅ Finished! All data saved in 'orcid_full_data.xlsx'")
-print(f"   - ORCID profiles: {len(summary_list)}")
-zbmath_count = sum(1 for s in summary_list if "zbmath_author_id" in s)
-print(f"   - zbMath profiles: {zbmath_count}")
+    # Save results
+    print(f"\n📊 Saving data to: {OUTPUT_EXCEL}")
+    with pd.ExcelWriter(OUTPUT_EXCEL, engine="openpyxl") as writer:
+        if summary_list:
+            pd.DataFrame(summary_list).to_excel(writer, sheet_name="Summary", index=False)
 
+    # Print summary
+    print("✅ Finished! All data saved")
+    print(f"   - ORCID profiles: {len(summary_list)}")
+    zbmath_count = sum(1 for s in summary_list if "zbmath_author_id" in s)
+    print(f"   - zbMath profiles: {zbmath_count}")
+
+
+if __name__ == "__main__":
+    main()
