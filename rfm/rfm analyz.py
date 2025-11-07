@@ -1,7 +1,7 @@
 """
-RFM (Recency, Frequency, Monetary) Analysis
-============================================
-This module performs customer segmentation based on RFM metrics.
+Customer Value Assessment Module
+=================================
+This module performs customer evaluation based on purchasing behavior metrics.
 
 Author: [Your Name]
 Date: November 2025
@@ -14,207 +14,207 @@ from datetime import datetime
 from typing import Tuple
 
 
-class RFMAnalyzer:
+class CustomerValueAssessor:
     """
-    A class to perform RFM (Recency, Frequency, Monetary) analysis on customer transaction data.
+    A class to perform customer value assessment based on purchase behavior.
 
     Attributes:
-        df (pd.DataFrame): The input transaction dataset
-        rfm_df (pd.DataFrame): The calculated RFM metrics and scores
+        transaction_data (pd.DataFrame): The input transaction dataset
+        evaluation_results (pd.DataFrame): The calculated metrics and scores
     """
 
-    # RFM Score Configuration
-    RECENCY_WEIGHT = 0.15
-    FREQUENCY_WEIGHT = 0.28
-    MONETARY_WEIGHT = 0.57
-    SCORE_MULTIPLIER = 0.05
+    # Score Weighting Configuration
+    TIME_WEIGHT = 0.15
+    PURCHASE_COUNT_WEIGHT = 0.28
+    REVENUE_WEIGHT = 0.57
+    FINAL_MULTIPLIER = 0.05
 
-    # Customer Segment Thresholds
-    SEGMENT_THRESHOLDS = {
-        'Top Customers': 4.5,
-        'High Value Customer': 4.0,
-        'Medium Value Customer': 3.0,
-        'Low Value Customers': 1.6
+    # Classification Boundaries
+    TIER_BOUNDARIES = {
+        'Premium Tier': 4.5,
+        'Gold Tier': 4.0,
+        'Silver Tier': 3.0,
+        'Bronze Tier': 1.6
     }
 
-    def __init__(self, filepath: str):
+    def __init__(self, data_path: str):
         """
-        Initialize the RFM Analyzer with a dataset.
+        Initialize the Customer Value Assessor with a dataset.
 
         Args:
-            filepath (str): Path to the CSV file containing transaction data
+            data_path (str): Path to the CSV file containing transaction data
         """
-        self.df = self._load_data(filepath)
-        self.rfm_df = None
+        self.transaction_data = self._import_records(data_path)
+        self.evaluation_results = None
 
-    def _load_data(self, filepath: str) -> pd.DataFrame:
+    def _import_records(self, data_path: str) -> pd.DataFrame:
         """
         Load and preprocess the transaction data.
 
         Args:
-            filepath (str): Path to the CSV file
+            data_path (str): Path to the CSV file
 
         Returns:
             pd.DataFrame: Preprocessed transaction data
         """
-        df = pd.read_csv(filepath)
-        df['PurchaseDate'] = pd.to_datetime(df['PurchaseDate'])
-        return df
+        records = pd.read_csv(data_path)
+        records['PurchaseDate'] = pd.to_datetime(records['PurchaseDate'])
+        return records
 
-    def calculate_recency(self) -> pd.DataFrame:
+    def compute_time_metric(self) -> pd.DataFrame:
         """
-        Calculate recency metric for each customer.
+        Calculate time-based metric for each customer.
 
-        Recency is defined as the number of days since the customer's last purchase.
+        Time metric is defined as days since the customer's most recent purchase.
 
         Returns:
-            pd.DataFrame: DataFrame with CustomerID and Recency columns
+            pd.DataFrame: DataFrame with CustomerID and time metric columns
         """
-        recency_df = self.df.groupby('CustomerID', as_index=False)['PurchaseDate'].max()
-        recency_df.columns = ['CustomerID', 'LastPurchaseDate']
+        time_analysis = self.transaction_data.groupby('CustomerID', as_index=False)['PurchaseDate'].max()
+        time_analysis.columns = ['CustomerID', 'MostRecentDate']
 
-        reference_date = recency_df['LastPurchaseDate'].max()
-        recency_df['Recency'] = recency_df['LastPurchaseDate'].apply(
-            lambda x: (reference_date - x).days
+        benchmark_date = time_analysis['MostRecentDate'].max()
+        time_analysis['DaysSinceLastPurchase'] = time_analysis['MostRecentDate'].apply(
+            lambda date: (benchmark_date - date).days
         )
 
-        return recency_df[['CustomerID', 'Recency']]
+        return time_analysis[['CustomerID', 'DaysSinceLastPurchase']]
 
-    def calculate_frequency(self) -> pd.DataFrame:
+    def compute_transaction_count(self) -> pd.DataFrame:
         """
-        Calculate frequency metric for each customer.
+        Calculate transaction count metric for each customer.
 
-        Frequency is defined as the number of unique transactions per customer.
+        Count is defined as the number of unique transactions per customer.
 
         Returns:
-            pd.DataFrame: DataFrame with CustomerID and Frequency columns
+            pd.DataFrame: DataFrame with CustomerID and transaction count columns
         """
-        frequency_df = (
-            self.df.drop_duplicates()
+        count_analysis = (
+            self.transaction_data.drop_duplicates()
             .groupby('CustomerID', as_index=False)['PurchaseDate']
             .count()
         )
-        frequency_df.columns = ['CustomerID', 'Frequency']
+        count_analysis.columns = ['CustomerID', 'TransactionCount']
 
-        return frequency_df
+        return count_analysis
 
-    def calculate_monetary(self) -> pd.DataFrame:
+    def compute_revenue_metric(self) -> pd.DataFrame:
         """
-        Calculate monetary metric for each customer.
+        Calculate revenue metric for each customer.
 
-        Monetary value is the total amount spent by each customer.
+        Revenue value is the total amount spent by each customer.
 
         Returns:
-            pd.DataFrame: DataFrame with CustomerID and Monetary columns
+            pd.DataFrame: DataFrame with CustomerID and revenue columns
         """
-        monetary_df = self.df.groupby('CustomerID', as_index=False)['TransactionAmount'].sum()
-        monetary_df.columns = ['CustomerID', 'Monetary']
+        revenue_analysis = self.transaction_data.groupby('CustomerID', as_index=False)['TransactionAmount'].sum()
+        revenue_analysis.columns = ['CustomerID', 'TotalRevenue']
 
-        return monetary_df
+        return revenue_analysis
 
-    def calculate_rfm_score(self) -> pd.DataFrame:
+    def compute_overall_score(self) -> pd.DataFrame:
         """
-        Calculate RFM scores and rankings for all customers.
+        Calculate overall value scores and rankings for all customers.
 
         Returns:
-            pd.DataFrame: Complete RFM analysis with scores and rankings
+            pd.DataFrame: Complete analysis with scores and rankings
         """
         # Calculate individual metrics
-        recency_df = self.calculate_recency()
-        frequency_df = self.calculate_frequency()
-        monetary_df = self.calculate_monetary()
+        time_metrics = self.compute_time_metric()
+        count_metrics = self.compute_transaction_count()
+        revenue_metrics = self.compute_revenue_metric()
 
         # Merge all metrics
-        rfm_df = (
-            recency_df
-            .merge(frequency_df, on='CustomerID')
-            .merge(monetary_df, on='CustomerID')
+        combined_data = (
+            time_metrics
+            .merge(count_metrics, on='CustomerID')
+            .merge(revenue_metrics, on='CustomerID')
         )
 
-        # Calculate rankings (lower recency is better, higher frequency/monetary is better)
-        rfm_df['R_rank'] = rfm_df['Recency'].rank(ascending=True)
-        rfm_df['F_rank'] = rfm_df['Frequency'].rank(ascending=False)
-        rfm_df['M_rank'] = rfm_df['Monetary'].rank(ascending=False)
+        # Calculate rankings (lower time is better, higher count/revenue is better)
+        combined_data['TimeRanking'] = combined_data['DaysSinceLastPurchase'].rank(ascending=True)
+        combined_data['CountRanking'] = combined_data['TransactionCount'].rank(ascending=False)
+        combined_data['RevenueRanking'] = combined_data['TotalRevenue'].rank(ascending=False)
 
         # Normalize rankings to 0-100 scale
-        for col in ['R_rank', 'F_rank', 'M_rank']:
-            rfm_df[f'{col}_norm'] = (rfm_df[col] / rfm_df[col].max()) * 100
+        for metric in ['TimeRanking', 'CountRanking', 'RevenueRanking']:
+            combined_data[f'{metric}_Normalized'] = (combined_data[metric] / combined_data[metric].max()) * 100
 
-        # Calculate weighted RFM score
-        rfm_df['RFM_Score'] = (
-            self.RECENCY_WEIGHT * rfm_df['R_rank_norm'] +
-            self.FREQUENCY_WEIGHT * rfm_df['F_rank_norm'] +
-            self.MONETARY_WEIGHT * rfm_df['M_rank_norm']
-        ) * self.SCORE_MULTIPLIER
+        # Calculate weighted overall score
+        combined_data['OverallScore'] = (
+            self.TIME_WEIGHT * combined_data['TimeRanking_Normalized'] +
+            self.PURCHASE_COUNT_WEIGHT * combined_data['CountRanking_Normalized'] +
+            self.REVENUE_WEIGHT * combined_data['RevenueRanking_Normalized']
+        ) * self.FINAL_MULTIPLIER
 
         # Round for readability
-        rfm_df = rfm_df.round(2)
+        combined_data = combined_data.round(2)
 
-        self.rfm_df = rfm_df
-        return rfm_df
+        self.evaluation_results = combined_data
+        return combined_data
 
-    def segment_customers(self) -> pd.DataFrame:
+    def classify_customers(self) -> pd.DataFrame:
         """
-        Segment customers based on their RFM scores.
+        Classify customers based on their overall scores.
 
         Returns:
-            pd.DataFrame: RFM data with customer segments assigned
+            pd.DataFrame: Data with customer classifications assigned
         """
-        if self.rfm_df is None:
-            self.calculate_rfm_score()
+        if self.evaluation_results is None:
+            self.compute_overall_score()
 
-        conditions = [
-            self.rfm_df['RFM_Score'] > self.SEGMENT_THRESHOLDS['Top Customers'],
-            self.rfm_df['RFM_Score'] > self.SEGMENT_THRESHOLDS['High Value Customer'],
-            self.rfm_df['RFM_Score'] > self.SEGMENT_THRESHOLDS['Medium Value Customer'],
-            self.rfm_df['RFM_Score'] > self.SEGMENT_THRESHOLDS['Low Value Customers']
+        criteria = [
+            self.evaluation_results['OverallScore'] > self.TIER_BOUNDARIES['Premium Tier'],
+            self.evaluation_results['OverallScore'] > self.TIER_BOUNDARIES['Gold Tier'],
+            self.evaluation_results['OverallScore'] > self.TIER_BOUNDARIES['Silver Tier'],
+            self.evaluation_results['OverallScore'] > self.TIER_BOUNDARIES['Bronze Tier']
         ]
 
-        segments = [
-            'Top Customers',
-            'High Value Customer',
-            'Medium Value Customer',
-            'Low Value Customers',
-            'Lost Customers'
+        tier_labels = [
+            'Premium Tier',
+            'Gold Tier',
+            'Silver Tier',
+            'Bronze Tier',
+            'Inactive Tier'
         ]
 
-        self.rfm_df['Customer_Segment'] = np.select(conditions, segments[:-1], default=segments[-1])
+        self.evaluation_results['CustomerTier'] = np.select(criteria, tier_labels[:-1], default=tier_labels[-1])
 
-        return self.rfm_df
+        return self.evaluation_results
 
-    def get_summary(self, top_n: int = 20) -> pd.DataFrame:
+    def get_top_performers(self, limit: int = 20) -> pd.DataFrame:
         """
-        Get a summary of top customers by RFM score.
+        Get a summary of top-performing customers by overall score.
 
         Args:
-            top_n (int): Number of top customers to display
+            limit (int): Number of top customers to display
 
         Returns:
             pd.DataFrame: Summary of top customers
         """
-        if self.rfm_df is None or 'Customer_Segment' not in self.rfm_df.columns:
-            self.segment_customers()
+        if self.evaluation_results is None or 'CustomerTier' not in self.evaluation_results.columns:
+            self.classify_customers()
 
-        return self.rfm_df[['CustomerID', 'RFM_Score', 'Customer_Segment']].head(top_n)
+        return self.evaluation_results[['CustomerID', 'OverallScore', 'CustomerTier']].head(limit)
 
-    def plot_segment_distribution(self, figsize: Tuple[int, int] = (12, 8)) -> None:
+    def visualize_tier_breakdown(self, chart_size: Tuple[int, int] = (12, 8)) -> None:
         """
-        Create a pie chart showing the distribution of customer segments.
+        Create a pie chart showing the distribution of customer tiers.
 
         Args:
-            figsize (tuple): Figure size as (width, height)
+            chart_size (tuple): Figure size as (width, height)
         """
-        if self.rfm_df is None or 'Customer_Segment' not in self.rfm_df.columns:
-            self.segment_customers()
+        if self.evaluation_results is None or 'CustomerTier' not in self.evaluation_results.columns:
+            self.classify_customers()
 
-        segment_counts = self.rfm_df['Customer_Segment'].value_counts()
+        tier_distribution = self.evaluation_results['CustomerTier'].value_counts()
 
-        fig, ax = plt.subplots(figsize=figsize)
+        figure, axis = plt.subplots(figsize=chart_size)
 
         # Create pie chart with adjusted parameters
-        wedges, texts, autotexts = ax.pie(
-            segment_counts,
-            labels=segment_counts.index,
+        slices, tier_labels, percentages = axis.pie(
+            tier_distribution,
+            labels=tier_distribution.index,
             autopct='%1.1f%%',
             startangle=105,  # Rotated 15 degrees (90 + 15)
             colors=plt.cm.Set3.colors,
@@ -223,17 +223,17 @@ class RFMAnalyzer:
         )
 
         # Adjust label properties for better readability
-        for text in texts:
-            text.set_fontsize(11)
-            text.set_weight('bold')
+        for label in tier_labels:
+            label.set_fontsize(11)
+            label.set_weight('bold')
 
-        for autotext in autotexts:
-            autotext.set_color('white')
-            autotext.set_fontsize(10)
-            autotext.set_weight('bold')
+        for percentage in percentages:
+            percentage.set_color('white')
+            percentage.set_fontsize(10)
+            percentage.set_weight('bold')
 
         # Add title with padding
-        plt.title('Customer Segmentation Distribution\n',
+        plt.title('Customer Tier Distribution\n',
                  fontsize=14,
                  fontweight='bold',
                  pad=20)
@@ -242,43 +242,151 @@ class RFMAnalyzer:
         plt.tight_layout()
         plt.show()
 
-    def generate_report(self) -> None:
+    def visualize_score_histogram(self, chart_size: Tuple[int, int] = (12, 6), bar_count: int = 30) -> None:
         """
-        Generate a comprehensive RFM analysis report.
+        Create a histogram showing the distribution of overall scores across all customers.
+
+        Args:
+            chart_size (tuple): Figure size as (width, height)
+            bar_count (int): Number of bars for the histogram
         """
-        if self.rfm_df is None:
-            self.segment_customers()
+        if self.evaluation_results is None or 'CustomerTier' not in self.evaluation_results.columns:
+            self.classify_customers()
+
+        figure, axis = plt.subplots(figsize=chart_size)
+
+        # Create histogram
+        frequencies, bar_edges, rectangles = axis.hist(
+            self.evaluation_results['OverallScore'],
+            bins=bar_count,
+            color='skyblue',
+            edgecolor='black',
+            alpha=0.7
+        )
+
+        # Color bars by tier boundaries
+        for index, rectangle in enumerate(rectangles):
+            bar_left = bar_edges[index]
+            bar_right = bar_edges[index + 1]
+            bar_midpoint = (bar_left + bar_right) / 2
+
+            # Default color based on tier boundaries
+            if bar_midpoint > self.TIER_BOUNDARIES['Premium Tier']:
+                rectangle.set_facecolor('#2ecc71')  # Green
+            elif bar_midpoint > self.TIER_BOUNDARIES['Gold Tier']:
+                rectangle.set_facecolor('#3498db')  # Blue
+            elif bar_midpoint > self.TIER_BOUNDARIES['Silver Tier']:
+                rectangle.set_facecolor('#f39c12')  # Orange
+            elif bar_midpoint > self.TIER_BOUNDARIES['Bronze Tier']:
+                rectangle.set_facecolor('#e74c3c')  # Red
+            else:
+                rectangle.set_facecolor('#95a5a6')  # Gray
+
+            # ✅ Highlight intersection bars (those containing boundary values)
+            for boundary in self.TIER_BOUNDARIES.values():
+                if bar_left <= boundary < bar_right:
+                    rectangle.set_edgecolor('black')
+                    rectangle.set_linewidth(2)
+                    rectangle.set_hatch('//')  # Optional: add pattern to highlight
+
+            for tier_name, boundary_value in self.TIER_BOUNDARIES.items():
+                y_value = np.interp(boundary_value, bar_edges[:-1], frequencies)
+                axis.scatter(boundary_value, y_value, color='black', s=80, marker='o', zorder=5)
+
+
+        # Add statistical information
+        average_score = self.evaluation_results['OverallScore'].mean()
+        middle_score = self.evaluation_results['OverallScore'].median()
+
+        axis.axvline(average_score, color='purple', linestyle='-', linewidth=2,
+                   label=f'Mean: {average_score:.2f}')
+        axis.axvline(middle_score, color='pink', linestyle='-', linewidth=2,
+                   label=f'Median: {middle_score:.2f}')
+
+        for tier_name, boundary_value in self.TIER_BOUNDARIES.items():
+            # Find approximate Y for intersection
+            y_value = np.interp(boundary_value, bar_edges[:-1], frequencies)
+
+            # Plot intersection marker
+            axis.scatter(boundary_value, y_value, color='black', s=80, marker='o', zorder=5)
+
+            # Add label with offset and rotation
+            axis.text(
+                boundary_value,
+                y_value + max(frequencies) * 0.05,  # vertical offset (5% of height)
+                tier_name,
+                ha='center',
+                va='bottom',
+                fontsize=9,
+                color='black',
+                fontweight='bold',
+                rotation=30,  # tilt text slightly
+                rotation_mode='anchor',
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7)  # background box for readability
+            )
+
+        # Formatting
+       # axis.set_xlabel('Overall Score', fontsize=12, fontweight='bold')
+       # axis.set_ylabel('Number of Customers', fontsize=12, fontweight='bold')
+        axis.set_title('Overall Score Distribution\n', fontsize=14, fontweight='bold', pad=15)
+        axis.grid(axis='y', alpha=0.3, linestyle='--')
+        axis.legend(loc='upper right', fontsize=9)
+
+        # Add text box with statistics
+        statistics_summary = f'Total Customers: {len(self.evaluation_results)}\n'
+        statistics_summary += f'Mean Score: {average_score:.2f}\n'
+        statistics_summary += f'Median Score: {middle_score:.2f}\n'
+        statistics_summary += f'Std Dev: {self.evaluation_results["OverallScore"].std():.2f}'
+
+        axis.text(
+            0.02, 0.98, statistics_summary,
+            transform=axis.transAxes,
+            fontsize=10,
+            verticalalignment='top',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        )
+
+        plt.tight_layout()
+        plt.show()
+
+    def produce_summary_report(self) -> None:
+        """
+        Generate a comprehensive customer value assessment report.
+        """
+        if self.evaluation_results is None:
+            self.classify_customers()
 
         print("="*60)
-        print("RFM ANALYSIS REPORT")
+        print("CUSTOMER VALUE ASSESSMENT REPORT")
         print("="*60)
-        print(f"\nTotal Customers Analyzed: {len(self.rfm_df)}")
-        print("\nCustomer Segment Distribution:")
+        print(f"\nTotal Customers Analyzed: {len(self.evaluation_results)}")
+        print("\nCustomer Tier Distribution:")
         print("-"*60)
-        print(self.rfm_df['Customer_Segment'].value_counts())
+        print(self.evaluation_results['CustomerTier'].value_counts())
         print("\n" + "="*60)
-        print("\nTop 20 Customers by RFM Score:")
+        print("\nTop 20 Customers by Overall Score:")
         print("-"*60)
-        print(self.get_summary(20))
+        print(self.get_top_performers(20))
         print("\n" + "="*60)
 
 
-def main():
+def execute_analysis():
     """
-    Main execution function for RFM analysis.
+    Main execution function for customer value assessment.
     """
-    # Initialize analyzer
-    analyzer = RFMAnalyzer('dataset.csv')
+    # Initialize assessor
+    assessor = CustomerValueAssessor('dataset.csv')
 
     # Perform analysis
-    analyzer.segment_customers()
+    assessor.classify_customers()
 
     # Generate report
-    analyzer.generate_report()
+    assessor.produce_summary_report()
 
     # Visualize results
-    analyzer.plot_segment_distribution()
+    assessor.visualize_tier_breakdown()
+    assessor.visualize_score_histogram()
 
 
 if __name__ == "__main__":
-    main()
+    execute_analysis()
