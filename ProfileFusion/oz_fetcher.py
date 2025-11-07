@@ -9,6 +9,7 @@ import urllib.parse
 import os
 import json
 import traceback
+import difflib
 
 # ---------------------------------------------------------------
 # Configuration
@@ -40,7 +41,6 @@ summary_list = []
 # ---------------------------------------------------------------
 # Utility functions
 # ---------------------------------------------------------------
-
 def safe_get(url, headers=None, params=None, max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT):
     """Safe GET request with retries and timeout."""
     for attempt in range(max_retries):
@@ -51,12 +51,11 @@ def safe_get(url, headers=None, params=None, max_retries=MAX_RETRIES, timeout=RE
         except Exception as e:
             print(f"   ⚠️ Request failed ({attempt + 1}/{max_retries}) for {url}: {e}")
     return None
-
 # ---------------------------------------------------------------
 # zbMath API
 # ---------------------------------------------------------------
 def zbmath_id(firstname, lastname, orcid_id=None, size=ZBMATH_RESULTS_SIZE):
-    """Fetch zbMath author data and merge into summary_list by firstname+lastname."""
+
     search_string = f"ln:{lastname} fn:{firstname}"
     params = {"search_string": search_string, "size": size}
 
@@ -68,46 +67,64 @@ def zbmath_id(firstname, lastname, orcid_id=None, size=ZBMATH_RESULTS_SIZE):
     try:
         data = response.json()
         results_list = data.get("result", [])
-        print(results_list)
         if not results_list:
             print("   ⚠️ No zbMath results found")
             return []
 
+        print(f"   ✅ zbMath returned {len(results_list)} result(s):")
+        for i, author in enumerate(results_list, 1):
+            print(f"      {i}. {author.get('name')} (id={author.get('code')})")
+
+        # Try to find the best matching name
+        orcid_fullname = f"{firstname} {lastname}".lower()
+        best_author = None
+        best_score = 0.0
+
         for author in results_list:
-            # Find if person already in summary_list by firstname + lastname
-            matched_entry = None
-            for entry in summary_list:
-                if (entry.get("firstname") == firstname and entry.get("lastname") == lastname):
-                    matched_entry = entry
-                    break
+            zb_name = (author.get("name") or "").lower()
+            # Compute similarity ratio between zbMath and ORCID name
+            score = difflib.SequenceMatcher(None, orcid_fullname, zb_name).ratio()
+            if score > best_score:
+                best_author = author
+                best_score = score
 
-            zb_info = {
-                "zbmath_author_id": author.get("code"),
-                "zbmath_name": author.get("name"),
-                "orcid_from_zbmath": author.get("orcid"),
+        if not best_author:
+            print("   ⚠️ No matching zbMath author found by name")
+            return results_list
+
+        zb_info = {
+            "zbmath_author_id": best_author.get("code"),
+            "zbmath_name": best_author.get("name"),
+            "match_score": round(best_score, 3),
+
+            "orcid_from_zbmath": None,  # API doesn't provide this
+        }
+
+        # Find or create entry in summary_list
+        matched_entry = next(
+            (e for e in summary_list
+             if e.get("firstname") == firstname and e.get("lastname") == lastname),
+            None
+        )
+
+        if matched_entry:
+            matched_entry.update(zb_info)
+            print(f"   ✓ Matched zbMath author: {zb_info['zbmath_name']} (score={best_score:.2f})")
+        else:
+            new_entry = {
+                "firstname": firstname,
+                "lastname": lastname,
+                "orcid_id": orcid_id,
+                **zb_info
             }
-
-            if matched_entry:
-                # Update the existing entry with zbMath info
-                matched_entry.update(zb_info)
-                print(f"   ✓ Updated summary with zbMath author for {firstname} {lastname}: {zb_info['zbmath_name']}")
-            else:
-                # No existing ORCID entry, create new summary row with zbMath info
-                new_entry = {
-                    "firstname": firstname,
-                    "lastname": lastname,
-                    "orcid_id": orcid_id,
-                    **zb_info
-                }
-                summary_list.append(new_entry)
-                print(f"   ✓ Added new summary entry for zbMath author: {zb_info['zbmath_name']}")
+            summary_list.append(new_entry)
+            print(f"   ✓ Added zbMath author: {zb_info['zbmath_name']} (score={best_score:.2f})")
 
         return results_list
 
     except Exception as e:
         print(f"   ⚠️ zbMath error for {firstname} {lastname}: {e}")
         return []
-
 # ---------------------------------------------------------------
 # ORCID API
 # ---------------------------------------------------------------
@@ -184,11 +201,9 @@ def orchid_finder(search_data, first, last):
             traceback.print_exc()
 
     return None
-
 # ---------------------------------------------------------------
 # Main execution
 # ---------------------------------------------------------------
-
 def main():
     """Main execution function."""
     # Read input CSV
