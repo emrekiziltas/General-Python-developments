@@ -1,10 +1,7 @@
 """
-Customer Value Assessment Module with Streamlit Interface
-==========================================================
-This module performs customer evaluation based on purchasing behavior metrics.
-
-Author: [Your Name]
-Date: November 2025
+Customer Value Assessment Module with Enhanced Streamlit Interface
+=================================================================
+Improved filter interactions with lock system and auto-scaling weights.
 """
 
 import pandas as pd
@@ -389,7 +386,7 @@ class CustomerValueAssessor:
 
 def create_streamlit_app():
     """
-    Create Streamlit dashboard with tabs for different reports.
+    Create Streamlit dashboard with enhanced filter interactions and auto-scaling weights.
     """
     st.set_page_config(
         page_title="Customer Value Assessment Dashboard",
@@ -409,31 +406,14 @@ def create_streamlit_app():
 
         assessor = CustomerValueAssessor("dataset.csv")
 
-        # Sidebar filters
-        st.sidebar.header("🔍 Filters")
-        st.sidebar.markdown("*Apply filters to all reports*")
-
-        all_tiers = ['Premium Tier', 'Gold Tier', 'Silver Tier', 'Bronze Tier', 'Low Activity Tier']
-        tier_filter = st.sidebar.multiselect(
-            "Select Customer Tiers",
-            options=all_tiers,
-            default=all_tiers
-        )
-
-        min_score = st.sidebar.number_input("Minimum Overall Score", 0.0, 10.0, 0.0, 0.1)
-        max_score = st.sidebar.number_input("Maximum Overall Score", 0.0, 10.0, 10.0, 0.1)
-
         # ==========================
-        # ⚖️ Scoring Weights Section
+        # SIDEBAR - SCORING WEIGHTS WITH LOCK SYSTEM
         # ==========================
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("⚖️ Scoring Weights")
+        st.sidebar.header("⚖️ Scoring Weights")
         st.sidebar.markdown("""
-        Adjust how much each factor contributes to the **Overall Customer Score**.
-
-        - Each weight has its own 🔒 checkbox to **lock** or **unlock** it.
-        - When you adjust or unlock one slider, the other **unlocked sliders** rebalance automatically  
-          so the total always equals **1.0**.
+        Adjust how each factor contributes to the **Overall Customer Score**.
+        - 🔒 **Lock** weights to exclude them from auto-rebalancing
+        - Unlocked weights automatically adjust so total = 1.0
         """)
 
         # Initialize session state
@@ -443,14 +423,14 @@ def create_streamlit_app():
             st.session_state.locked_vars = [False, False, False]
 
         labels = [
-            "Recency Weight (Time)",
-            "Frequency Weight (Purchase Count)",
-            "Monetary Weight (Revenue)"
+            "Recency (Time)",
+            "Frequency (Count)",
+            "Monetary (Revenue)"
         ]
         helps = [
-            "Importance of how recently the customer made a purchase.",
-            "Importance of how often the customer purchases.",
-            "Importance of how much the customer spends."
+            "How recently the customer made a purchase",
+            "How often the customer purchases",
+            "How much the customer spends"
         ]
 
         def rebalance_weights():
@@ -505,10 +485,10 @@ def create_streamlit_app():
 
             st.session_state.weights = weights
 
-        # --- Draw sliders and checkboxes ---
+        # --- Draw sliders and lock checkboxes ---
         checkbox_changed = False
         for i, label in enumerate(labels):
-            cols = st.sidebar.columns([0.8, 0.2])
+            cols = st.sidebar.columns([0.75, 0.25])
             with cols[0]:
                 new_val = st.slider(
                     label,
@@ -522,8 +502,10 @@ def create_streamlit_app():
                 )
             with cols[1]:
                 new_lock_state = st.checkbox(
-                    "🔒", value=st.session_state.locked_vars[i], key=f"lock_{i}",
-                    help="Lock this weight (exclude from auto-adjust)"
+                    "🔒",
+                    value=st.session_state.locked_vars[i],
+                    key=f"lock_{i}",
+                    help="Lock this weight"
                 )
                 # Detect checkbox change
                 if new_lock_state != st.session_state.locked_vars[i]:
@@ -545,33 +527,73 @@ def create_streamlit_app():
         total = time_weight + count_weight + revenue_weight
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown("**Current Weight Distribution:**")
-        st.sidebar.success(f"✅ Total Weight = {total:.2f}")
-        st.sidebar.write(f"- Recency: {time_weight:.2%} {'🔒' if st.session_state.locked_vars[0] else ''}")
-        st.sidebar.write(f"- Frequency: {count_weight:.2%} {'🔒' if st.session_state.locked_vars[1] else ''}")
-        st.sidebar.write(f"- Monetary: {revenue_weight:.2%} {'🔒' if st.session_state.locked_vars[2] else ''}")
+        st.sidebar.success(f"✅ **Total Weight = {total:.2f}**")
+        st.sidebar.write(f"• Recency: **{time_weight:.0%}** {'🔒' if st.session_state.locked_vars[0] else ''}")
+        st.sidebar.write(f"• Frequency: **{count_weight:.0%}** {'🔒' if st.session_state.locked_vars[1] else ''}")
+        st.sidebar.write(f"• Monetary: **{revenue_weight:.0%}** {'🔒' if st.session_state.locked_vars[2] else ''}")
 
-        # Reset
-        if st.sidebar.button("🔄 Reset to Default Weights", key="reset_weights"):
+        # Reset button
+        if st.sidebar.button("🔄 Reset to Defaults", use_container_width=True):
             st.session_state.weights = [0.15, 0.28, 0.57]
             st.session_state.locked_vars = [False, False, False]
             st.rerun()
 
-
-
-        # ----------------------------------
-        # Run classification and filtering
-        # ----------------------------------
+        # Apply weights and classify customers
         assessor.classify_customers(time_weight, count_weight, revenue_weight)
-        filtered_data = assessor.get_filtered_data(tier_filter, min_score, max_score)
 
+        # ==========================
+        # SIDEBAR - DATA FILTERS
+        # ==========================
         st.sidebar.markdown("---")
-        st.sidebar.metric("Total Customers", len(assessor.evaluation_results))
-        st.sidebar.metric("Filtered Customers", len(filtered_data))
+        st.sidebar.header("🔍 Data Filters")
 
-        # ----------------------------------
-        # Tabs
-        # ----------------------------------
+        # Enable/disable filters toggle
+        enable_filters = st.sidebar.checkbox(
+            "Enable Filters",
+            value=False,
+            help="Turn on to filter data by tier and score"
+        )
+
+        if enable_filters:
+            with st.sidebar.expander("Filter Settings", expanded=True):
+                all_tiers = ['Premium Tier', 'Gold Tier', 'Silver Tier', 'Bronze Tier', 'Low Activity Tier']
+                tier_filter = st.multiselect(
+                    "Customer Tiers",
+                    options=all_tiers,
+                    default=all_tiers,
+                    help="Select which tiers to include"
+                )
+
+                st.markdown("**Score Range**")
+                score_range = st.slider(
+                    "Overall Score",
+                    0.0, 5.0, (0.0, 5.0), 0.1,
+                    help="Filter by overall score range"
+                )
+                min_score, max_score = score_range
+
+                if st.button("🗑️ Clear Filters", use_container_width=True):
+                    st.rerun()
+
+            # Apply filters
+            filtered_data = assessor.get_filtered_data(tier_filter, min_score, max_score)
+
+            # Show filter impact
+            filtered_count = len(filtered_data)
+            total_count = len(assessor.evaluation_results)
+            filter_pct = (filtered_count / total_count * 100) if total_count > 0 else 0
+
+            if filtered_count < total_count:
+                st.sidebar.warning(f"🔍 Filtered: {filtered_count:,} of {total_count:,} ({filter_pct:.1f}%)")
+            else:
+                st.sidebar.success(f"✅ All {total_count:,} customers shown")
+        else:
+            filtered_data = assessor.evaluation_results
+            st.sidebar.info(f"📊 Showing all {len(filtered_data):,} customers")
+
+        # ==========================
+        # MAIN CONTENT - TABS
+        # ==========================
         tab1, tab2, tab3, tab4 = st.tabs([
             "📋 Summary Report",
             "🏆 Top Performers",
@@ -585,7 +607,7 @@ def create_streamlit_app():
 
             col1, col2, col3, col4 = st.columns(4)
             with col1:
-                st.metric("Total Customers", len(filtered_data))
+                st.metric("Total Customers", f"{len(filtered_data):,}")
             with col2:
                 st.metric("Avg Overall Score", f"{filtered_data['OverallScore'].mean():.2f}")
             with col3:
@@ -599,34 +621,56 @@ def create_streamlit_app():
             tier_counts = filtered_data["CustomerTier"].value_counts().reset_index()
             tier_counts.columns = ["Tier", "Count"]
             tier_counts["Percentage"] = (tier_counts["Count"] / len(filtered_data) * 100).round(1)
+            tier_counts = tier_counts.sort_values("Count", ascending=False)
             st.dataframe(tier_counts, use_container_width=True, hide_index=True)
 
             st.markdown("---")
             st.subheader("Customer Details")
-            st.dataframe(
-                filtered_data[
-                    [
-                        "CustomerID",
-                        "OverallScore",
-                        "CustomerTier",
-                        "TotalRevenue",
-                        "TransactionCount",
-                        "DaysSinceLastPurchase",
-                    ]
+
+            # Add search and sorting
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                search_term = st.text_input("🔍 Search Customer ID", "")
+            with col2:
+                sort_by = st.selectbox("Sort by", ["OverallScore", "TotalRevenue", "TransactionCount"])
+
+            display_data = filtered_data[
+                [
+                    "CustomerID",
+                    "OverallScore",
+                    "CustomerTier",
+                    "TotalRevenue",
+                    "TransactionCount",
+                    "DaysSinceLastPurchase",
                 ]
-                .sort_values("OverallScore", ascending=False)
-                .reset_index(drop=True),
-                use_container_width=True,
+            ].copy()
+
+            if search_term:
+                display_data = display_data[display_data["CustomerID"].astype(str).str.contains(search_term, case=False)]
+
+            display_data = display_data.sort_values(sort_by, ascending=False).reset_index(drop=True)
+
+            st.dataframe(display_data, use_container_width=True)
+
+            # Download button
+            csv = display_data.to_csv(index=False)
+            st.download_button(
+                "📥 Download Customer Data",
+                csv,
+                "customer_data.csv",
+                "text/csv",
+                key='download-csv'
             )
 
         # Tab 2: Top Performers
         with tab2:
             st.header("Top Performing Customers")
 
-            top_n = st.slider("Number of top customers to display", 10, 50, 20)
+            top_n = st.slider("Number of top customers to display", 5, 50, 20)
             top_customers = filtered_data.nlargest(top_n, "OverallScore")
 
-            col1, col2 = st.columns(2)
+            col1, col2 = st.columns([2, 1])
+
             with col1:
                 st.subheader(f"Top {top_n} Customers")
                 st.dataframe(
@@ -638,20 +682,33 @@ def create_streamlit_app():
 
             with col2:
                 st.subheader("Key Metrics")
-                st.metric("Average Score (Top Performers)", f"{top_customers['OverallScore'].mean():.2f}")
-                st.metric("Total Revenue (Top Performers)", f"${top_customers['TotalRevenue'].sum():,.2f}")
-                st.metric("Avg Transactions (Top Performers)", f"{top_customers['TransactionCount'].mean():.1f}")
+                st.metric("Average Score", f"{top_customers['OverallScore'].mean():.2f}")
+                st.metric("Total Revenue", f"${top_customers['TotalRevenue'].sum():,.2f}")
+                st.metric("Avg Transactions", f"{top_customers['TransactionCount'].mean():.1f}")
 
-                st.markdown("**Tier Distribution (Top Performers)**")
-                st.bar_chart(top_customers["CustomerTier"].value_counts())
+                st.markdown("**Tier Distribution**")
+                tier_dist = top_customers["CustomerTier"].value_counts()
+                for tier, count in tier_dist.items():
+                    st.metric(tier, count)
 
         # Tab 3: Tier Distribution
         with tab3:
             st.header("Customer Tier Distribution")
 
-            fig_pie = assessor.visualize_tier_breakdown((10, 6), filtered_data=filtered_data)
-            st.pyplot(fig_pie)
-            plt.close()
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                fig_pie = assessor.visualize_tier_breakdown((10, 6), filtered_data=filtered_data)
+                st.pyplot(fig_pie)
+                plt.close()
+
+            with col2:
+                st.subheader("Tier Statistics")
+                tier_stats = filtered_data.groupby("CustomerTier").agg({
+                    "OverallScore": "mean",
+                    "TotalRevenue": "sum",
+                    "TransactionCount": "mean"
+                }).round(2)
+                st.dataframe(tier_stats, use_container_width=True)
 
         # Tab 4: Score Distribution
         with tab4:
@@ -662,6 +719,18 @@ def create_streamlit_app():
             st.pyplot(fig_hist)
             plt.close()
 
+            # Additional statistics
+            st.subheader("Score Statistics")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Mean", f"{filtered_data['OverallScore'].mean():.2f}")
+            with col2:
+                st.metric("Median", f"{filtered_data['OverallScore'].median():.2f}")
+            with col3:
+                st.metric("Std Dev", f"{filtered_data['OverallScore'].std():.2f}")
+            with col4:
+                st.metric("Range", f"{filtered_data['OverallScore'].max() - filtered_data['OverallScore'].min():.2f}")
+
     else:
         st.info("👆 Please upload a CSV file to begin the analysis")
         st.markdown("""
@@ -669,6 +738,12 @@ def create_streamlit_app():
         - `CustomerID`: Unique customer identifier  
         - `PurchaseDate`: Date of purchase  
         - `TransactionAmount`: Amount spent in transaction
+        
+        ### Features:
+        - **Auto-Scaling Weights**: Lock individual weights and others automatically adjust to sum to 1.0
+        - **Data Filters**: Optional filtering by tier and score range
+        - **Interactive Reports**: Explore customer segments with sortable tables and visualizations
+        - **Export**: Download filtered customer data for further analysis
         """)
 
 
