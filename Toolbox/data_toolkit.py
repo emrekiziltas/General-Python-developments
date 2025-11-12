@@ -3,7 +3,6 @@ Data Conversion Toolkit - Reusable functions for data preprocessing
 """
 import pandas as pd
 
-
 # ==================== DATE CONVERSIONS ====================
 def convert_dates(df, date_columns, extract_components=True):
     """
@@ -28,7 +27,6 @@ def convert_dates(df, date_columns, extract_components=True):
                 df[f'{col}_DayOfWeek'] = df[col].dt.day_name()
 
     return df
-
 
 # ==================== NUMERIC CONVERSIONS ====================
 def convert_numeric(df, columns, round_decimals=2, add_formatted=True, currency_symbol='$'):
@@ -56,7 +54,6 @@ def convert_numeric(df, columns, round_decimals=2, add_formatted=True, currency_
 
     return df
 
-
 # ==================== CATEGORICAL CONVERSIONS ====================
 def convert_to_category(df, columns):
     """
@@ -77,7 +74,6 @@ def convert_to_category(df, columns):
             df[col] = df[col].astype('category')
 
     return df
-
 
 # ==================== BINNING/CATEGORIZATION ====================
 def create_bins(df, column, bins, labels, new_column_name=None):
@@ -101,7 +97,6 @@ def create_bins(df, column, bins, labels, new_column_name=None):
         df[new_column_name] = pd.cut(df[column], bins=bins, labels=labels)
 
     return df
-
 
 # ==================== AUTO DETECTION & CONVERSION ====================
 def auto_convert_types(df, date_columns=None, numeric_columns=None,
@@ -144,8 +139,6 @@ def auto_convert_types(df, date_columns=None, numeric_columns=None,
         df = convert_numeric(df, numeric_columns)
 
     return df
-
-
 # ==================== DISPLAY FUNCTIONS ====================
 def describe_data(df):
     """Display statistics for numeric and categorical columns separately"""
@@ -179,7 +172,6 @@ def describe_data(df):
     else:
         print("No datetime columns found.")
 
-
 def show_info(df):
     """Display comprehensive information about the DataFrame"""
     print("=" * 60)
@@ -194,7 +186,6 @@ def show_info(df):
     print("MISSING VALUES")
     print("=" * 60)
     print(df.isnull().sum())
-
 
 # ==================== USAGE EXAMPLE ====================
 if __name__ == "__main__":
