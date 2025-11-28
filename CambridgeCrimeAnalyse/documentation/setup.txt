@@ -1,0 +1,215 @@
+# Complete Setup Instructions
+
+## 📁 File Placement Guide
+
+### 1. Update your `config.ini`
+**Location**: `scripts/config.ini`
+
+Replace your current config.ini content with:
+```ini
+[Settings]
+# Relative path from scripts folder to data folder
+folder_path = ../data/raw
+
+# Data file name
+data_file = merged_file.csv
+```
+
+### 2. Create Python Files in `scripts/` folder
+
+All Python files go in the `scripts/` folder:
+- `config.py`
+- `data_loader.py`
+- `report_generator.py`
+- `map_generator.py`
+- `main.py`
+
+### 3. Create `requirements.txt`
+**Location**: Project root (CambridgeCrimeAnalyse/)
+
+### 4. Create `.gitignore`
+**Location**: Project root (CambridgeCrimeAnalyse/)
+
+### 5. Create `README.md`
+**Location**: Project root (CambridgeCrimeAnalyse/)
+
+## 🎯 Create .gitkeep Files (For GitHub)
+
+To keep empty output folders in Git, create empty `.gitkeep` files:
+
+**Windows Command Prompt** (from project root):
+```cmd
+cd output\charts
+echo. > .gitkeep
+cd ..\maps
+echo. > .gitkeep
+cd ..\data
+echo. > .gitkeep
+cd ..\reports
+echo. > .gitkeep
+cd ..\..
+```
+
+**PowerShell** (from project root):
+```powershell
+New-Item -ItemType File -Path "output\charts\.gitkeep" -Force
+New-Item -ItemType File -Path "output\maps\.gitkeep" -Force
+New-Item -ItemType File -Path "output\data\.gitkeep" -Force
+New-Item -ItemType File -Path "output\reports\.gitkeep" -Force
+```
+
+**Git Bash / Linux / Mac**:
+```bash
+touch output/charts/.gitkeep
+touch output/maps/.gitkeep
+touch output/data/.gitkeep
+touch output/reports/.gitkeep
+```
+
+## 🚀 Running the Script
+
+### First Time Setup
+
+1. **Install dependencies**:
+```bash
+cd C:\Users\ek675\PycharmProjects\PythonExcel\CambridgeCrimeAnalyse
+pip install -r requirements.txt
+```
+
+2. **Verify data location**:
+Make sure `merged_file.csv` is in `data/raw/` folder
+
+3. **Run the analysis**:
+```bash
+cd scripts
+python main.py
+```
+
+### What Should Happen
+
+You'll see output like:
+```
+============================================================
+CAMBRIDGE CRIME DATA ANALYSIS
+============================================================
+
+2024-11-28 09:00:00 - __main__ - INFO - Initializing configuration...
+2024-11-28 09:00:00 - data_loader - INFO - Loading data...
+2024-11-28 09:00:00 - data_loader - INFO - Successfully loaded 15,234 records
+
+Data Summary:
+  Total records: 15,234
+  Date range: 2024-01-01 to 2024-12-31
+  Unique crime types: 14
+  Unique areas: 89
+  Records with coordinates: 15,123
+
+2024-11-28 09:00:01 - report_generator - INFO - Analyzing crime types...
+2024-11-28 09:00:02 - report_generator - INFO - Saved: output/charts/chart1_crime_types.png
+...
+```
+
+## 📂 Final Directory Structure
+
+```
+CambridgeCrimeAnalyse/
+├── bin/
+├── data/
+│   └── raw/
+│       └── merged_file.csv
+├── docs/
+├── output/
+│   ├── charts/
+│   │   ├── .gitkeep
+│   │   ├── chart1_crime_types.png
+│   │   ├── chart2_monthly_trends.png
+│   │   ├── chart3_areas.png
+│   │   └── chart4_outcomes.png
+│   ├── maps/
+│   │   ├── .gitkeep
+│   │   ├── map1_crime_heatmap.html
+│   │   ├── map2_crime_markers.html
+│   │   └── map3_crime_clusters.html
+│   ├── data/
+│   │   ├── .gitkeep
+│   │   └── top_dangerous_locations.csv
+│   └── reports/
+│       ├── .gitkeep
+│       └── summary_statistics.txt
+├── scripts/
+│   ├── config.ini
+│   ├── config.py
+│   ├── data_loader.py
+│   ├── report_generator.py
+│   ├── map_generator.py
+│   └── main.py
+├── crime_analysis.log
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+## 🐛 Troubleshooting
+
+### "ModuleNotFoundError: No module named 'pandas'"
+**Solution**: Install requirements
+```bash
+pip install -r requirements.txt
+```
+
+### "FileNotFoundError: [Errno 2] No such file or directory: '../data/raw/merged_file.csv'"
+**Solution**:
+- Check that `merged_file.csv` is in `data/raw/` folder
+- Make sure you're running from `scripts/` folder: `cd scripts` then `python main.py`
+
+### "Permission denied" when creating output folders
+**Solution**: Run your terminal as administrator
+
+### Import errors between modules
+**Solution**: Make sure all Python files are in the same `scripts/` folder
+
+## 📤 Pushing to GitHub
+
+### Initial Setup
+
+```bash
+# From project root
+git init
+git add .
+git commit -m "Initial commit: Cambridge crime analysis project"
+git branch -M main
+git remote add origin https://github.com/yourusername/CambridgeCrimeAnalyse.git
+git push -u origin main
+```
+
+### Regular Updates
+
+```bash
+git add .
+git commit -m "Updated analysis"
+git push
+```
+
+## ✅ Checklist
+
+- [ ] Updated config.ini with relative path
+- [ ] Created all 5 Python files in scripts/
+- [ ] Created requirements.txt in project root
+- [ ] Created .gitignore in project root
+- [ ] Created README.md in project root
+- [ ] Created .gitkeep files in output folders
+- [ ] Verified merged_file.csv is in data/raw/
+- [ ] Installed dependencies (pip install -r requirements.txt)
+- [ ] Successfully ran python main.py from scripts folder
+- [ ] Verified all outputs were created
+- [ ] Committed to Git
+- [ ] Pushed to GitHub
+
+## 🎉 Next Steps
+
+After everything works:
+1. I'll create the professional HTML report page for GitHub Pages
+2. We'll set up GitHub Pages deployment
+3. You'll have a live portfolio-ready crime analysis report!
+
+**Ready for the next step?** Let me know when the script runs successfully!
